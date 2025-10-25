@@ -25,11 +25,14 @@ fn main() {
         .iter()
         .map(|svg_path| {
             if let Ok(tree) = load_svg(svg_path) {
-                let sprite = if args.sdf {
+                let mut sprite = if args.sdf {
                     Sprite::new_sdf(tree, pixel_ratio).expect("failed to load an SDF sprite")
                 } else {
                     Sprite::new(tree, pixel_ratio).expect("failed to load a sprite")
                 };
+                if args.crop {
+                    sprite.crop(args.include_center);
+                }
                 if let Ok(name) = sprite_name(svg_path, args.input.as_path()) {
                     (name, sprite)
                 } else {

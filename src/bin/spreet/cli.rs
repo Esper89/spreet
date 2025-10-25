@@ -25,6 +25,12 @@ pub struct Cli {
     /// Include images in sub-directories
     #[arg(long)]
     pub recursive: bool,
+    /// Crop rendered images to remove transparent pixels around the edges
+    #[arg(long)]
+    pub crop: bool,
+    /// Include the position of the pre-crop center of each sprite in the JSON index file
+    #[arg(long, requires("crop"))]
+    pub include_center: bool,
     /// Add pixel spacing between sprites
     #[arg(long, default_value_t = 0, value_parser = is_non_negative)]
     pub spacing: u8,

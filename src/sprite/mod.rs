@@ -30,6 +30,8 @@ pub struct Sprite {
     pixel_ratio: u8,
     /// Bitmap image generated from the SVG image.
     pixmap: Pixmap,
+    /// Center of the image before post-render cropping.
+    center: Option<SpriteCenter>,
 }
 
 impl Sprite {
@@ -43,6 +45,7 @@ impl Sprite {
             tree,
             pixel_ratio,
             pixmap,
+            center: None,
         })
     }
 
@@ -141,7 +144,62 @@ impl Sprite {
             tree,
             pixel_ratio,
             pixmap: buff_pixmap,
+            center: None,
         })
+    }
+
+    /// Automatically crop the sprite to remove transparent edges.
+    ///
+    /// If `record_center` is true, the position of the pre-crop center of the image is recorded.
+    pub fn crop(&mut self, record_center: bool) {
+        let mut seen_nonempty = false;
+        let mut min_x = 0;
+        let mut min_y = 0;
+        let mut max_x = 0;
+        let mut max_y = 0;
+        for y in 0..self.pixmap.height() {
+            for x in 0..self.pixmap.width() {
+                let Some(pixel) = self.pixmap.pixel(x, y) else {
+                    continue;
+                };
+
+                if pixel.alpha() != 0 {
+                    if seen_nonempty {
+                        min_x = min_x.min(x);
+                        min_y = min_y.min(y);
+                        max_x = max_x.max(x);
+                        max_y = max_y.max(y);
+                    } else {
+                        seen_nonempty = true;
+                        min_x = x;
+                        min_y = y;
+                        max_x = x;
+                        max_y = y;
+                    }
+                }
+            }
+        }
+
+        if !seen_nonempty {
+            self.pixmap = Pixmap::new(1, 1).unwrap();
+            if record_center {
+                self.center = Some(SpriteCenter { x: 0.0, y: 0.0 });
+            }
+        }
+
+        let (x, y, w, h) = (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1);
+        if record_center {
+            self.center = Some(SpriteCenter {
+                x: (self.pixmap.width() - 1) as f32 / 2.0 - x as f32,
+                y: (self.pixmap.height() - 1) as f32 / 2.0 - y as f32,
+            });
+        }
+
+        let tf = Transform::from_translate(-(x as f32), -(y as f32));
+        let mut cropped = Pixmap::new(w, h).unwrap();
+        cropped.draw_pixmap(0, 0, self.pixmap.as_ref(), &Default::default(), tf, None);
+
+        self.pixmap = cropped;
     }
 
     /// Get the sprite's SVG tree.
@@ -159,6 +217,11 @@ impl Sprite {
     /// The bitmap is generated at the sprite's [pixel ratio](Self::pixel_ratio).
     pub fn pixmap(&self) -> &Pixmap {
         &self.pixmap
+    }
+
+    /// Get the center of the sprite before cropping.
+    pub fn center(&self) -> Option<SpriteCenter> {
+        self.center
     }
 
     /// Metadata for a [stretchable icon].
@@ -290,6 +353,17 @@ pub struct SpriteDescription {
     pub stretch_y: Option<Vec<Rect>>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub sdf: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub center: Option<SpriteCenter>,
+}
+
+/// The center of a sprite before cropping.
+///
+/// Only included if the sprite is cropped and recording the center was specifically requested.
+#[derive(Clone, Copy, Serialize)]
+pub struct SpriteCenter {
+    pub x: f32,
+    pub y: f32,
 }
 
 impl SpriteDescription {
@@ -304,6 +378,7 @@ impl SpriteDescription {
             stretch_x: sprite.stretch_x_areas(),
             stretch_y: sprite.stretch_y_areas(),
             sdf,
+            center: sprite.center,
         }
     }
 }

@@ -116,6 +116,8 @@ Options:
       --retina             Set the pixel ratio to 2 (equivalent to `--ratio=2`)
       --unique             Store only unique images in the spritesheet, and map them to multiple names
       --recursive          Include images in sub-directories
+      --crop               Crop rendered images to remove transparent pixels around the edges
+      --include-center     Include the position of the pre-crop center of each sprite in the JSON index file
       --spacing <SPACING>  Add pixel spacing between sprites [default: 0]
   -m, --minify-index-file  Remove whitespace from the JSON index file
       --sdf                Output a spritesheet using a signed distance field for each sprite
