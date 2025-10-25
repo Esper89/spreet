@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
+use std::num::NonZero;
 
 use clap::Parser;
-use spreet::{get_svg_input_paths, load_svg, sprite_name, Sprite, Spritesheet};
+use spreet::{get_svg_input_paths, load_svg, sprite_name, Optlevel, Sprite, Spritesheet};
 
 mod cli;
 
@@ -25,11 +26,14 @@ fn main() {
         .iter()
         .map(|svg_path| {
             if let Ok(tree) = load_svg(svg_path) {
-                let sprite = if args.sdf {
+                let mut sprite = if args.sdf {
                     Sprite::new_sdf(tree, pixel_ratio).expect("failed to load an SDF sprite")
                 } else {
                     Sprite::new(tree, pixel_ratio).expect("failed to load a sprite")
                 };
+                if args.crop {
+                    sprite.crop(args.include_center);
+                }
                 if let Ok(name) = sprite_name(svg_path, args.input.as_path()) {
                     (name, sprite)
                 } else {
@@ -64,16 +68,30 @@ fn main() {
         std::process::exit(exitcode::DATAERR);
     };
 
+    let optlevel = match (args.oxipng, args.zopfli) {
+        (None, None) => Optlevel::default(),
+        (Some(level), None) => Optlevel::Oxipng { level },
+        (None, Some(iterations)) => Optlevel::Zopfli {
+            iterations: NonZero::new(iterations).unwrap(),
+        },
+        (Some(_), Some(_)) => unreachable!(),
+    };
+
     // Save the bitmapped spritesheet to a local PNG.
     let file_prefix = args.output;
     let spritesheet_path = format!("{file_prefix}.png");
-    if let Err(e) = spritesheet.save_spritesheet(&spritesheet_path) {
+    if let Err(e) = spritesheet.save_spritesheet_at(&spritesheet_path, optlevel) {
         eprintln!("Error: could not save spritesheet to {spritesheet_path} ({e})");
         std::process::exit(exitcode::IOERR);
     };
 
     // Save the index file to a local JSON file with the same name as the spritesheet.
-    if let Err(e) = spritesheet.save_index(&file_prefix, args.minify_index_file) {
+    let res = if args.simple_index_file {
+        spritesheet.save_index_simple(&file_prefix, args.minify_index_file)
+    } else {
+        spritesheet.save_index(&file_prefix, args.minify_index_file)
+    };
+    if let Err(e) = res {
         eprintln!("Error: could not save sprite index to {file_prefix} ({e})");
         std::process::exit(exitcode::IOERR);
     };
