@@ -190,8 +190,8 @@ impl Sprite {
         let (x, y, w, h) = (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1);
         if record_center {
             self.center = Some(SpriteCenter {
-                x: (self.pixmap.width() - 1) as f32 / 2.0 - x as f32,
-                y: (self.pixmap.height() - 1) as f32 / 2.0 - y as f32,
+                x: self.pixmap.width() as f32 / 2.0 - x as f32,
+                y: self.pixmap.height() as f32 / 2.0 - y as f32,
             });
         }
 
