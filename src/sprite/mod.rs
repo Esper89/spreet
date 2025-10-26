@@ -693,6 +693,8 @@ impl Spritesheet {
             width: u32,
             x: u32,
             y: u32,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            center: Option<SpriteCenter>,
         }
 
         let index = self
@@ -704,6 +706,7 @@ impl Spritesheet {
                     y: sprite.y,
                     width: sprite.width,
                     height: sprite.height,
+                    center: sprite.center,
                 };
 
                 (name, sprite)
