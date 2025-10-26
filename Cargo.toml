@@ -1,11 +1,11 @@
 [package]
 name = "spreet"
-version = "0.13.0-dev"
+version = "0.13.0-dev+esper89"
 edition = "2021"
 rust-version = "1.79"
 description = "Create a spritesheet from a set of SVG images"
 readme = "README.md"
-repository = "https://github.com/flother/spreet"
+repository = "https://github.com/Esper89/spreet"
 documentation = "https://docs.rs/spreet"
 license = "MIT"
 keywords = ["sprite", "svg", "cartography", "vector-tiles", "maplibre"]
@@ -39,7 +39,7 @@ assert_matches = "1.5"
 predicates = "3"
 
 [profile.release]
-lto = "thin"
+lto = true
 strip = true
 codegen-units = 1
 
